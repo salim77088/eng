@@ -35,19 +35,12 @@ impl Editor {
     ) -> Self {
         let ctx = egui::Context::default();
         let viewport = egui::ViewportId::ROOT;
-        let winit_state = EguiState::new(
-            ctx.clone(),
-            viewport,
-            window,
-            None,
-            None,
-            None,
-        );
+        let winit_state = EguiState::new(ctx.clone(), viewport, window, None, None, None);
         let renderer = EguiRenderer::new(
             device,
             surface_format,
-            None, // no depth for egui
-            1,    // msaa_samples
+            None,  // no depth for egui
+            1,     // msaa_samples
             false, // dithering
         );
         Self {
@@ -108,7 +101,13 @@ impl Editor {
         for (id, image_delta) in textures_delta.set.into_iter() {
             renderer.update_texture(device, queue, id, &image_delta);
         }
-        renderer.update_buffers(device, queue, &mut encoder, &clipped_primitives, &screen_descriptor);
+        renderer.update_buffers(
+            device,
+            queue,
+            &mut encoder,
+            &clipped_primitives,
+            &screen_descriptor,
+        );
 
         {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -129,8 +128,11 @@ impl Editor {
             // bound on `egui_wgpu::Renderer::render` is an API limitation,
             // not a real safety requirement - the render pass is consumed
             // before this block ends.
-            let rpass_static: &mut wgpu::RenderPass<'static> =
-                unsafe { std::mem::transmute::<&mut wgpu::RenderPass<'_>, &mut wgpu::RenderPass<'static>>(&mut rpass) };
+            let rpass_static: &mut wgpu::RenderPass<'static> = unsafe {
+                std::mem::transmute::<&mut wgpu::RenderPass<'_>, &mut wgpu::RenderPass<'static>>(
+                    &mut rpass,
+                )
+            };
             renderer.render(rpass_static, &clipped_primitives, &screen_descriptor);
         }
 

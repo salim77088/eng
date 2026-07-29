@@ -12,21 +12,19 @@ env:
 
 jobs:
   build:
-    name: Build (${{ matrix.os }} / ${{ matrix.toolchain }})
+    name: Build (${{ matrix.display_name }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        toolchain: [stable]
         include:
           # On Linux, also test without the audio feature (headless / no ALSA).
           - os: ubuntu-latest
             extra_args: "--no-default-features"
-            display_name: "ubuntu (no-audio)"
+            display_name: "ubuntu-no-audio"
           - os: ubuntu-latest
             extra_args: ""
-            display_name: "ubuntu (full)"
+            display_name: "ubuntu-full"
           - os: windows-latest
             extra_args: ""
             display_name: "windows"
@@ -41,12 +39,10 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: ${{ matrix.toolchain }}
+          components: rustfmt
 
       - name: Cache Cargo
         uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: "lumina -> target"
 
       - name: Install Linux system dependencies
         if: runner.os == 'Linux'
@@ -66,16 +62,13 @@ jobs:
             libxcursor-dev
 
       - name: Check formatting
-        if: matrix.os == 'ubuntu-latest' && matrix.extra_args == ''
+        if: matrix.display_name == 'ubuntu-full'
         run: cargo fmt --all -- --check
-        working-directory: lumina
 
       - name: Build (debug)
-        working-directory: lumina
         run: cargo build --workspace ${{ matrix.extra_args }}
 
       - name: Build (release)
-        working-directory: lumina
         run: cargo build --workspace --release ${{ matrix.extra_args }}
 
       - name: Upload binary artifact
@@ -83,8 +76,7 @@ jobs:
         with:
           name: lumina-${{ matrix.display_name }}
           path: |
-            lumina/target/release/lumina
-            lumina/target/release/lumina.exe
-            lumina/target/release/lumina.app
+            target/release/lumina
+            target/release/lumina.exe
           if-no-files-found: ignore
           retention-days: 14

@@ -17,7 +17,11 @@ impl Texture {
     /// Create a 1x1 fully-opaque white texture - the classic "no texture"
     /// fallback so tinted sprites still draw something useful.
     pub fn white_fallback(device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
-        let size = wgpu::Extent3d { width: 1, height: 1, depth_or_array_layers: 1 };
+        let size = wgpu::Extent3d {
+            width: 1,
+            height: 1,
+            depth_or_array_layers: 1,
+        };
         let tex = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("lumina white fallback"),
             size,
@@ -72,7 +76,11 @@ impl Texture {
     ) -> Result<Self> {
         let img = image::load_from_memory(bytes)?.to_rgba8();
         let (width, height) = img.dimensions();
-        let size = wgpu::Extent3d { width, height, depth_or_array_layers: 1 };
+        let size = wgpu::Extent3d {
+            width,
+            height,
+            depth_or_array_layers: 1,
+        };
         let tex = device.create_texture(&wgpu::TextureDescriptor {
             label: Some(label),
             size,
@@ -131,7 +139,11 @@ impl Texture {
     /// Create a depth-stencil texture matching the surface size. Used as
     /// the depth attachment for the 3D pipeline.
     pub fn depth(device: &wgpu::Device, width: u32, height: u32, label: &str) -> Self {
-        let size = wgpu::Extent3d { width, height, depth_or_array_layers: 1 };
+        let size = wgpu::Extent3d {
+            width,
+            height,
+            depth_or_array_layers: 1,
+        };
         let tex = device.create_texture(&wgpu::TextureDescriptor {
             label: Some(label),
             size,

@@ -23,13 +23,17 @@ pub struct Script {
 impl Script {
     /// Load and compile a script file.
     pub fn load(path: &Path) -> Result<Self> {
-        let source = std::fs::read_to_string(path)
-            .with_context(|| format!("read script {:?}", path))?;
+        let source =
+            std::fs::read_to_string(path).with_context(|| format!("read script {:?}", path))?;
         let engine = build_engine();
         let ast = engine
             .compile(&source)
             .map_err(|e| anyhow::anyhow!("compile error in {:?}: {e}", path))?;
-        Ok(Self { path: path.to_path_buf(), ast, source })
+        Ok(Self {
+            path: path.to_path_buf(),
+            ast,
+            source,
+        })
     }
 
     /// Re-read the file from disk and recompile. Returns true if the
@@ -69,7 +73,9 @@ impl Default for ScriptWatcher {
 }
 
 impl ScriptWatcher {
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
 
     /// Add a script to the watch list. Returns its index.
     pub fn add(&self, path: &Path) -> Result<usize> {
@@ -92,7 +98,7 @@ impl ScriptWatcher {
         let mut guard = self.scripts.write();
         for (i, s) in guard.iter_mut().enumerate() {
             match s.reload() {
-                Ok(true)  => reloaded.push(i),
+                Ok(true) => reloaded.push(i),
                 Ok(false) => {}
                 Err(e) => log::warn!("script reload failed for {:?}: {e}", s.path),
             }
@@ -100,8 +106,12 @@ impl ScriptWatcher {
         reloaded
     }
 
-    pub fn len(&self) -> usize { self.scripts.read().len() }
-    pub fn is_empty(&self) -> bool { self.scripts.read().is_empty() }
+    pub fn len(&self) -> usize {
+        self.scripts.read().len()
+    }
+    pub fn is_empty(&self) -> bool {
+        self.scripts.read().is_empty()
+    }
     pub fn scripts(&self) -> parking_lot::RwLockReadGuard<'_, Vec<Script>> {
         self.scripts.read()
     }
@@ -179,10 +189,10 @@ pub fn run_update(watcher: &ScriptWatcher, ctx: &ScriptContext, dt: f32) {
     scope.push("fps", ctx.time.lock().fps());
     // Snapshot input state for the script.
     let input = ctx.input.lock();
-    scope.push("key_w_held", input.key(17));   // W
-    scope.push("key_a_held", input.key(30));   // A
-    scope.push("key_s_held", input.key(31));   // S
-    scope.push("key_d_held", input.key(32));   // D
+    scope.push("key_w_held", input.key(17)); // W
+    scope.push("key_a_held", input.key(30)); // A
+    scope.push("key_s_held", input.key(31)); // S
+    scope.push("key_d_held", input.key(32)); // D
     scope.push("key_space_held", input.key(57));
     drop(input);
 
@@ -190,9 +200,8 @@ pub fn run_update(watcher: &ScriptWatcher, ctx: &ScriptContext, dt: f32) {
         // Evaluate the AST once to populate function definitions, then
         // try to call `update(delta)`.
         let _ = engine.run_ast_with_scope(&mut scope, &s.ast);
-        let result: Result<(), Box<EvalAltResult>> = engine.call_fn::<()>(
-            &mut scope, &s.ast, "update", (dt,),
-        );
+        let result: Result<(), Box<EvalAltResult>> =
+            engine.call_fn::<()>(&mut scope, &s.ast, "update", (dt,));
         if let Err(e) = result {
             // 'update' not defined is fine; other errors get logged.
             if !e.to_string().contains("not found") {
@@ -207,5 +216,8 @@ pub fn run_update(watcher: &ScriptWatcher, ctx: &ScriptContext, dt: f32) {
 /// compiles, otherwise the error message.
 pub fn validate(source: &str) -> std::result::Result<(), String> {
     let engine = build_engine();
-    engine.compile(source).map(|_| ()).map_err(|e| e.to_string())
+    engine
+        .compile(source)
+        .map(|_| ())
+        .map_err(|e| e.to_string())
 }

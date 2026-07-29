@@ -1,8 +1,8 @@
 //! Editor state - everything the editor needs to remember between frames:
 //! selected entity, open panels, console log, asset list, simulator mode.
 
-use std::path::PathBuf;
 use egui::TextureHandle;
+use std::path::PathBuf;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum EditorMode {
@@ -12,7 +12,9 @@ pub enum EditorMode {
 }
 
 impl Default for EditorMode {
-    fn default() -> Self { EditorMode::Edit }
+    fn default() -> Self {
+        EditorMode::Edit
+    }
 }
 
 /// Mutable, frame-to-frame editor state.

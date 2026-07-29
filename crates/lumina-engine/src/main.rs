@@ -7,7 +7,9 @@
 
 use anyhow::{Context, Result};
 use lumina_audio::AudioEngine;
-use lumina_core::{banner, ecs::Name, input::KeyState, log as lumina_log, Input, Scene, Time, Transform, World};
+use lumina_core::{
+    banner, ecs::Name, input::KeyState, log as lumina_log, Input, Scene, Time, Transform, World,
+};
 use lumina_editor::{panels, Editor, EditorState};
 use lumina_graphics::{Camera, Camera3D, Mesh, Renderer, Sprite, SpriteBatch};
 use lumina_particles::{EmitterConfig, ParticleRegistry, ParticleSystem};
@@ -19,7 +21,7 @@ use winit::application::ApplicationHandler;
 use winit::event::{ElementState, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::keyboard::{KeyCode, PhysicalKey};
-use winit::window::{Window, WindowId, WindowAttributes};
+use winit::window::{Window, WindowAttributes, WindowId};
 
 fn main() -> Result<()> {
     lumina_log::init();
@@ -108,7 +110,9 @@ impl LuminaApp {
                 ..Default::default()
             },
         ));
-        scene.world.spawn((Name("Ground".into()), Transform::default()));
+        scene
+            .world
+            .spawn((Name("Ground".into()), Transform::default()));
         scene.world.spawn((
             Name("Logo".into()),
             Transform {
@@ -137,7 +141,10 @@ impl LuminaApp {
                 Err(e) => log::warn!("demo script load failed: {e}"),
             }
         } else {
-            log::info!("no demo script at {:?}; running without scripts", demo_script_path);
+            log::info!(
+                "no demo script at {:?}; running without scripts",
+                demo_script_path
+            );
         }
 
         let camera = Camera::Three(Camera3D::new(1280.0, 720.0));
@@ -242,7 +249,11 @@ impl LuminaApp {
         let sprite_batch = sprite_batch.clone();
         let res = renderer.render(clear, |rec| {
             for (t, name) in &mesh_draws {
-                let mesh = if name == "Ground" { &plane_mesh } else { &cube_mesh };
+                let mesh = if name == "Ground" {
+                    &plane_mesh
+                } else {
+                    &cube_mesh
+                };
                 let mut t2 = *t;
                 if name == "Ground" {
                     t2.scale = glam::Vec3::new(20.0, 1.0, 20.0);
@@ -276,7 +287,10 @@ impl LuminaApp {
         // Collect all entity info in a single query pass to avoid borrow issues.
         let entities: Vec<(u64, String, Option<[f32; 3]>, Option<[f32; 3]>)> = {
             let scene_guard = scene.read();
-            let mut query = scene_guard.world.raw().query::<(&Name, Option<&Transform>)>();
+            let mut query = scene_guard
+                .world
+                .raw()
+                .query::<(&Name, Option<&Transform>)>();
             let result: Vec<_> = query
                 .iter()
                 .map(|(e, (name, transform))| {
@@ -301,7 +315,11 @@ impl LuminaApp {
         let selected_id = editor.state.read().selected_entity;
         let inspector_info = selected_id.and_then(|id| {
             let (_, name, pos, scale) = entities.iter().find(|(eid, _, _, _)| *eid == id)?;
-            let asset = if name == "Ground" { "plane.lumina".to_string() } else { "cube.lumina".to_string() };
+            let asset = if name == "Ground" {
+                "plane.lumina".to_string()
+            } else {
+                "cube.lumina".to_string()
+            };
             Some(panels::InspectorInfo {
                 name: name.clone(),
                 position: pos.unwrap_or([0.0; 3]),
@@ -316,7 +334,12 @@ impl LuminaApp {
             let mut state = editor.state.write();
             state.stats.fps = time.read().fps();
             state.stats.entity_count = scene.read().world.entity_count();
-            state.stats.particles = particles.systems.read().iter().map(|s| s.read().count()).sum();
+            state.stats.particles = particles
+                .systems
+                .read()
+                .iter()
+                .map(|s| s.read().count())
+                .sum();
         }
 
         // Run egui.
@@ -340,7 +363,9 @@ impl LuminaApp {
         };
         // Acquire the surface texture for the egui overlay.
         if let Ok(surface_texture) = renderer.surface.get_current_texture() {
-            let view = surface_texture.texture.create_view(&wgpu::TextureViewDescriptor::default());
+            let view = surface_texture
+                .texture
+                .create_view(&wgpu::TextureViewDescriptor::default());
             editor.paint(
                 &renderer.device,
                 &renderer.queue,
@@ -364,18 +389,18 @@ impl ApplicationHandler for LuminaApp {
         let attrs = WindowAttributes::default()
             .with_title("Lumina Engine")
             .with_inner_size(winit::dpi::PhysicalSize::new(1280, 720));
-        let window = Arc::new(
-            event_loop.create_window(attrs).expect("create window")
-        );
+        let window = Arc::new(event_loop.create_window(attrs).expect("create window"));
         if let Err(e) = self.boot(window) {
             log::error!("boot failed: {e}");
         }
     }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
-        let (Some(window), Some(editor), Some(input)) =
-            (self.window.as_ref(), self.editor.as_ref(), self.input.as_ref())
-        else {
+        let (Some(window), Some(editor), Some(input)) = (
+            self.window.as_ref(),
+            self.editor.as_ref(),
+            self.input.as_ref(),
+        ) else {
             return;
         };
 
@@ -394,11 +419,15 @@ impl ApplicationHandler for LuminaApp {
                     camera.write().resize(size.width as f32, size.height as f32);
                 }
             }
-            WindowEvent::KeyboardInput { event: winit::event::KeyEvent {
-                physical_key: PhysicalKey::Code(code),
-                state,
+            WindowEvent::KeyboardInput {
+                event:
+                    winit::event::KeyEvent {
+                        physical_key: PhysicalKey::Code(code),
+                        state,
+                        ..
+                    },
                 ..
-            }, .. } => {
+            } => {
                 if !consumed {
                     let scancode = code_to_scancode(code);
                     let ks = match state {
@@ -412,7 +441,9 @@ impl ApplicationHandler for LuminaApp {
                 }
             }
             WindowEvent::CursorMoved { position, .. } => {
-                input.write().on_cursor(position.x as f32, position.y as f32);
+                input
+                    .write()
+                    .on_cursor(position.x as f32, position.y as f32);
             }
             WindowEvent::RedrawRequested => {
                 self.tick();

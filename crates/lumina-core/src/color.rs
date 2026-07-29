@@ -24,10 +24,10 @@ impl Default for Color {
 impl Color {
     pub const WHITE: Self = Self::rgb(255, 255, 255);
     pub const BLACK: Self = Self::rgb(0, 0, 0);
-    pub const RED:   Self = Self::rgb(255, 0, 0);
+    pub const RED: Self = Self::rgb(255, 0, 0);
     pub const GREEN: Self = Self::rgb(0, 255, 0);
-    pub const BLUE:  Self = Self::rgb(0, 0, 255);
-    pub const CYAN:  Self = Self::rgb(0, 220, 230);
+    pub const BLUE: Self = Self::rgb(0, 0, 255);
+    pub const CYAN: Self = Self::rgb(0, 220, 230);
 
     /// Lumina brand accent (cyan).
     pub const LUMINA_ACCENT: Self = Self::rgb(0, 220, 230);
@@ -45,7 +45,11 @@ impl Color {
         let h = hex.strip_prefix('#').unwrap_or(hex);
         let parse = |s: &str| u8::from_str_radix(s, 16).ok();
         match h.len() {
-            6 => Some(Self::rgb(parse(&h[0..2])?, parse(&h[2..4])?, parse(&h[4..6])?)),
+            6 => Some(Self::rgb(
+                parse(&h[0..2])?,
+                parse(&h[2..4])?,
+                parse(&h[4..6])?,
+            )),
             8 => Some(Self::rgba(
                 parse(&h[0..2])?,
                 parse(&h[2..4])?,

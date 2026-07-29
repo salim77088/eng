@@ -15,7 +15,7 @@ env:
 
 jobs:
   build:
-    name: Build release (${{ matrix.os }})
+    name: Build release (${{ matrix.display_name }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -25,18 +25,22 @@ jobs:
             target: x86_64-unknown-linux-gnu
             artifact_name: lumina-linux-x86_64
             archive: lumina-linux-x86_64.tar.gz
+            display_name: linux-x86_64
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             artifact_name: lumina-windows-x86_64
             archive: lumina-windows-x86_64.zip
+            display_name: windows-x86_64
           - os: macos-latest
             target: aarch64-apple-darwin
             artifact_name: lumina-macos-arm64
             archive: lumina-macos-arm64.tar.gz
+            display_name: macos-arm64
           - os: macos-13
             target: x86_64-apple-darwin
             artifact_name: lumina-macos-x86_64
             archive: lumina-macos-x86_64.tar.gz
+            display_name: macos-x86_64
 
     steps:
       - name: Checkout
@@ -49,8 +53,6 @@ jobs:
 
       - name: Cache Cargo
         uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: "lumina -> target"
 
       - name: Install Linux system dependencies
         if: runner.os == 'Linux'
@@ -70,37 +72,31 @@ jobs:
             libxcursor-dev
 
       - name: Build release
-        working-directory: lumina
         run: cargo build --release --target ${{ matrix.target }}
 
       - name: Stage artifacts (Unix)
         if: runner.os != 'Windows'
+        shell: bash
         run: |
           mkdir -p staging/assets
-          cp -r lumina/assets/* staging/assets/ 2>/dev/null || true
-          cp lumina/README.md staging/ 2>/dev/null || true
-          cp lumina/LICENSE-MIT staging/ 2>/dev/null || true
-          cp lumina/LICENSE-APACHE staging/ 2>/dev/null || true
-          if [ "${{ matrix.target }}" = "aarch64-apple-darwin" ] || [ "${{ matrix.target }}" = "x86_64-apple-darwin" ]; then
-            # On macOS, copy the binary directly (no .app bundle in v0.1)
-            cp lumina/target/${{ matrix.target }}/release/lumina staging/lumina
-          else
-            cp lumina/target/${{ matrix.target }}/release/lumina staging/lumina
-          fi
+          cp -r assets/* staging/assets/ 2>/dev/null || true
+          cp README.md staging/ 2>/dev/null || true
+          cp LICENSE-MIT staging/ 2>/dev/null || true
+          cp LICENSE-APACHE staging/ 2>/dev/null || true
+          cp target/${{ matrix.target }}/release/lumina staging/lumina
           tar -czf ${{ matrix.archive }} -C staging .
-        shell: bash
 
       - name: Stage artifacts (Windows)
         if: runner.os == 'Windows'
+        shell: pwsh
         run: |
           mkdir -p staging/assets
-          Copy-Item -Recurse lumina/assets/* staging/assets/ -ErrorAction SilentlyContinue
-          Copy-Item lumina/README.md staging/ -ErrorAction SilentlyContinue
-          Copy-Item lumina/LICENSE-MIT staging/ -ErrorAction SilentlyContinue
-          Copy-Item lumina/LICENSE-APACHE staging/ -ErrorAction SilentlyContinue
-          Copy-Item lumina/target/${{ matrix.target }}/release/lumina.exe staging/lumina.exe
+          Copy-Item -Recurse assets/* staging/assets/ -ErrorAction SilentlyContinue
+          Copy-Item README.md staging/ -ErrorAction SilentlyContinue
+          Copy-Item LICENSE-MIT staging/ -ErrorAction SilentlyContinue
+          Copy-Item LICENSE-APACHE staging/ -ErrorAction SilentlyContinue
+          Copy-Item target/${{ matrix.target }}/release/lumina.exe staging/lumina.exe
           Compress-Archive -Path staging/* -DestinationPath ${{ matrix.archive }}
-        shell: pwsh
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4

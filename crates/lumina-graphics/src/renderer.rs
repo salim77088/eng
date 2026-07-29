@@ -80,13 +80,16 @@ impl Renderer {
             .context("no suitable wgpu adapter")?;
 
         let (device, queue) = adapter
-            .request_device(&wgpu::DeviceDescriptor {
-                label: Some("lumina device"),
-                required_features: wgpu::Features::empty(),
-                required_limits: wgpu::Limits::downlevel_defaults()
-                    .using_resolution(adapter.limits()),
-                memory_hints: wgpu::MemoryHints::Performance,
-            }, None)
+            .request_device(
+                &wgpu::DeviceDescriptor {
+                    label: Some("lumina device"),
+                    required_features: wgpu::Features::empty(),
+                    required_limits: wgpu::Limits::downlevel_defaults()
+                        .using_resolution(adapter.limits()),
+                    memory_hints: wgpu::MemoryHints::Performance,
+                },
+                None,
+            )
             .await
             .context("failed to acquire wgpu device")?;
 
@@ -99,7 +102,12 @@ impl Renderer {
             .iter()
             .copied()
             .find(|f| f.is_srgb())
-            .unwrap_or(caps.formats.first().copied().unwrap_or(wgpu::TextureFormat::Bgra8Unorm));
+            .unwrap_or(
+                caps.formats
+                    .first()
+                    .copied()
+                    .unwrap_or(wgpu::TextureFormat::Bgra8Unorm),
+            );
 
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
@@ -108,7 +116,11 @@ impl Renderer {
             height: window_size.height.max(1),
             present_mode: wgpu::PresentMode::AutoVsync,
             desired_maximum_frame_latency: 2,
-            alpha_mode: caps.alpha_modes.first().copied().unwrap_or(wgpu::CompositeAlphaMode::Auto),
+            alpha_mode: caps
+                .alpha_modes
+                .first()
+                .copied()
+                .unwrap_or(wgpu::CompositeAlphaMode::Auto),
             view_formats: vec![],
         };
         surface.configure(&device, &config);
@@ -131,7 +143,8 @@ impl Renderer {
             label: Some("lumina sprite bg layout"),
             entries: &[
                 wgpu::BindGroupLayoutEntry {
-                    binding: 0, visibility: wgpu::ShaderStages::VERTEX,
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Uniform,
                         has_dynamic_offset: false,
@@ -140,7 +153,8 @@ impl Renderer {
                     count: None,
                 },
                 wgpu::BindGroupLayoutEntry {
-                    binding: 1, visibility: wgpu::ShaderStages::FRAGMENT,
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Texture {
                         sample_type: wgpu::TextureSampleType::Float { filterable: true },
                         view_dimension: wgpu::TextureViewDimension::D2,
@@ -149,7 +163,8 @@ impl Renderer {
                     count: None,
                 },
                 wgpu::BindGroupLayoutEntry {
-                    binding: 2, visibility: wgpu::ShaderStages::FRAGMENT,
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                     count: None,
                 },
@@ -159,11 +174,12 @@ impl Renderer {
             label: Some("lumina sprite shader"),
             source: wgpu::ShaderSource::Wgsl(SPRITE_SHADER.into()),
         });
-        let sprite_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("lumina sprite pipeline layout"),
-            bind_group_layouts: &[&sprite_bg_layout],
-            push_constant_ranges: &[],
-        });
+        let sprite_pipeline_layout =
+            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("lumina sprite pipeline layout"),
+                bind_group_layouts: &[&sprite_bg_layout],
+                push_constant_ranges: &[],
+            });
         let sprite_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("lumina sprite pipeline"),
             layout: Some(&sprite_pipeline_layout),
@@ -195,7 +211,8 @@ impl Renderer {
             label: Some("lumina mesh bg layout"),
             entries: &[
                 wgpu::BindGroupLayoutEntry {
-                    binding: 0, visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Uniform,
                         has_dynamic_offset: false,
@@ -204,7 +221,8 @@ impl Renderer {
                     count: None,
                 },
                 wgpu::BindGroupLayoutEntry {
-                    binding: 1, visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Uniform,
                         has_dynamic_offset: false,
@@ -213,7 +231,8 @@ impl Renderer {
                     count: None,
                 },
                 wgpu::BindGroupLayoutEntry {
-                    binding: 2, visibility: wgpu::ShaderStages::FRAGMENT,
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Texture {
                         sample_type: wgpu::TextureSampleType::Float { filterable: true },
                         view_dimension: wgpu::TextureViewDimension::D2,
@@ -222,7 +241,8 @@ impl Renderer {
                     count: None,
                 },
                 wgpu::BindGroupLayoutEntry {
-                    binding: 3, visibility: wgpu::ShaderStages::FRAGMENT,
+                    binding: 3,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                     count: None,
                 },
@@ -274,29 +294,30 @@ impl Renderer {
         });
 
         // ----- Particle pipeline (reuses SpriteVertex layout, no texture) -----
-        let particle_bg_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("lumina particle bg layout"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0, visibility: wgpu::ShaderStages::VERTEX,
+        let particle_bg_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("lumina particle bg layout"),
+                entries: &[wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Uniform,
                         has_dynamic_offset: false,
                         min_binding_size: None,
                     },
                     count: None,
-                },
-            ],
-        });
+                }],
+            });
         let particle_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("lumina particle shader"),
             source: wgpu::ShaderSource::Wgsl(PARTICLE_SHADER.into()),
         });
-        let particle_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("lumina particle pipeline layout"),
-            bind_group_layouts: &[&particle_bg_layout],
-            push_constant_ranges: &[],
-        });
+        let particle_pipeline_layout =
+            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("lumina particle pipeline layout"),
+                bind_group_layouts: &[&particle_bg_layout],
+                push_constant_ranges: &[],
+            });
         let particle_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("lumina particle pipeline"),
             layout: Some(&particle_pipeline_layout),
@@ -342,7 +363,9 @@ impl Renderer {
     }
 
     pub fn resize(&self, width: u32, height: u32) {
-        if width == 0 || height == 0 { return; }
+        if width == 0 || height == 0 {
+            return;
+        }
         {
             let mut cfg = self.config.write();
             cfg.width = width;
@@ -369,24 +392,27 @@ impl Renderer {
         let uniform = CameraUniform {
             view_proj: vp.to_cols_array_2d(),
         };
-        self.queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[uniform]));
+        self.queue
+            .write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[uniform]));
     }
 
     /// Render a frame. The closure records draw operations into the
     /// provided `FrameRecorder`; the renderer submits everything at once.
-    pub fn render(
-        &self,
-        clear: [f64; 4],
-        record: impl FnOnce(&mut FrameRecorder),
-    ) -> Result<()> {
-        let surface_texture = self.surface.get_current_texture()
+    pub fn render(&self, clear: [f64; 4], record: impl FnOnce(&mut FrameRecorder)) -> Result<()> {
+        let surface_texture = self
+            .surface
+            .get_current_texture()
             .map_err(|e| anyhow::anyhow!("surface acquisition failed: {e}"))?;
-        let texture_view = surface_texture.texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let texture_view = surface_texture
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
         let depth = self.depth_texture.read();
 
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("lumina frame encoder"),
-        });
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("lumina frame encoder"),
+            });
 
         // First pass: clear + draw everything into the surface view.
         {
@@ -397,7 +423,10 @@ impl Renderer {
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: clear[0], g: clear[1], b: clear[2], a: clear[3],
+                            r: clear[0],
+                            g: clear[1],
+                            b: clear[2],
+                            a: clear[3],
                         }),
                         store: wgpu::StoreOp::Store,
                     },
@@ -455,25 +484,42 @@ impl<'a> FrameRecorder<'a> {
     /// taken from the batch (the texture of the first sprite pushed); if
     /// none is set, the renderer's 1x1 white fallback is used.
     pub fn draw_sprites(&mut self, batch: &SpriteBatch) {
-        if batch.vertices.is_empty() { return; }
-        let vb = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("lumina sprite vb"),
-            contents: bytemuck::cast_slice(&batch.vertices),
-            usage: wgpu::BufferUsages::VERTEX,
-        });
-        let view = batch.texture.as_ref()
+        if batch.vertices.is_empty() {
+            return;
+        }
+        let vb = self
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("lumina sprite vb"),
+                contents: bytemuck::cast_slice(&batch.vertices),
+                usage: wgpu::BufferUsages::VERTEX,
+            });
+        let view = batch
+            .texture
+            .as_ref()
             .map(|t| t.view.clone())
             .unwrap_or_else(|| self.white.view.clone());
-        let sampler = batch.texture.as_ref()
+        let sampler = batch
+            .texture
+            .as_ref()
             .map(|t| t.sampler.clone())
             .unwrap_or_else(|| self.white.sampler.clone());
         let bg = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("lumina sprite bg"),
             layout: self.sprite_bg_layout,
             entries: &[
-                wgpu::BindGroupEntry { binding: 0, resource: self.camera_buffer.as_entire_binding() },
-                wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::TextureView(&view) },
-                wgpu::BindGroupEntry { binding: 2, resource: wgpu::BindingResource::Sampler(&sampler) },
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: self.camera_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::TextureView(&view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: wgpu::BindingResource::Sampler(&sampler),
+                },
             ],
         });
         self.pass.set_pipeline(self.sprite_pipeline);
@@ -492,42 +538,62 @@ impl<'a> FrameRecorder<'a> {
             model,
             color: mesh.tint,
         };
-        let model_buffer = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("lumina model ubo"),
-            contents: bytemuck::cast_slice(&[model_uniform]),
-            usage: wgpu::BufferUsages::UNIFORM,
-        });
+        let model_buffer = self
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("lumina model ubo"),
+                contents: bytemuck::cast_slice(&[model_uniform]),
+                usage: wgpu::BufferUsages::UNIFORM,
+            });
         let bg = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("lumina mesh bg"),
             layout: self.mesh_bg_layout,
             entries: &[
-                wgpu::BindGroupEntry { binding: 0, resource: self.camera_buffer.as_entire_binding() },
-                wgpu::BindGroupEntry { binding: 1, resource: model_buffer.as_entire_binding() },
-                wgpu::BindGroupEntry { binding: 2, resource: wgpu::BindingResource::TextureView(&mesh.texture.view) },
-                wgpu::BindGroupEntry { binding: 3, resource: wgpu::BindingResource::Sampler(&mesh.texture.sampler) },
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: self.camera_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: model_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: wgpu::BindingResource::TextureView(&mesh.texture.view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 3,
+                    resource: wgpu::BindingResource::Sampler(&mesh.texture.sampler),
+                },
             ],
         });
         self.pass.set_pipeline(self.mesh_pipeline);
         self.pass.set_bind_group(0, &bg, &[]);
         self.pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
-        self.pass.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
+        self.pass
+            .set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint32);
         self.pass.draw_indexed(0..mesh.index_count, 0, 0..1);
     }
 
     /// Draw a particle batch (vertices already built by the particle system).
     pub fn draw_particles(&mut self, vertices: &[SpriteVertex]) {
-        if vertices.is_empty() { return; }
-        let vb = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("lumina particle vb"),
-            contents: bytemuck::cast_slice(vertices),
-            usage: wgpu::BufferUsages::VERTEX,
-        });
+        if vertices.is_empty() {
+            return;
+        }
+        let vb = self
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("lumina particle vb"),
+                contents: bytemuck::cast_slice(vertices),
+                usage: wgpu::BufferUsages::VERTEX,
+            });
         let bg = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("lumina particle bg"),
             layout: self.particle_bg_layout,
-            entries: &[
-                wgpu::BindGroupEntry { binding: 0, resource: self.camera_buffer.as_entire_binding() },
-            ],
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: self.camera_buffer.as_entire_binding(),
+            }],
         });
         self.pass.set_pipeline(self.particle_pipeline);
         self.pass.set_bind_group(0, &bg, &[]);

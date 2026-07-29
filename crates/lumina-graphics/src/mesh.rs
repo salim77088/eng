@@ -11,8 +11,8 @@ use std::sync::Arc;
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]
 pub struct Vertex {
     pub position: [f32; 3],
-    pub normal:   [f32; 3],
-    pub uv:       [f32; 2],
+    pub normal: [f32; 3],
+    pub uv: [f32; 2],
 }
 
 impl Vertex {
@@ -55,15 +55,15 @@ impl Mesh {
                 label: Some("lumina mesh vb"),
                 contents: bytemuck::cast_slice(vertices),
                 usage: wgpu::BufferUsages::VERTEX,
-            }
+            },
         ));
-        let index_buffer = Arc::new(device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
+        let index_buffer = Arc::new(
+            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("lumina mesh ib"),
                 contents: bytemuck::cast_slice(indices),
                 usage: wgpu::BufferUsages::INDEX,
-            }
-        ));
+            }),
+        );
         Self {
             vertex_buffer,
             index_buffer,
@@ -81,34 +81,41 @@ impl Mesh {
         let s = 0.5;
         let positions = [
             // +X
-            ([ s,-s,-s],[ s,-s, s],[ s, s, s],[ s, s,-s]),
+            ([s, -s, -s], [s, -s, s], [s, s, s], [s, s, -s]),
             // -X
-            ([-s,-s, s],[-s,-s,-s],[-s, s,-s],[-s, s, s]),
+            ([-s, -s, s], [-s, -s, -s], [-s, s, -s], [-s, s, s]),
             // +Y
-            ([-s, s,-s],[ s, s,-s],[ s, s, s],[-s, s, s]),
+            ([-s, s, -s], [s, s, -s], [s, s, s], [-s, s, s]),
             // -Y
-            ([-s,-s, s],[ s,-s, s],[ s,-s,-s],[-s,-s,-s]),
+            ([-s, -s, s], [s, -s, s], [s, -s, -s], [-s, -s, -s]),
             // +Z
-            ([-s,-s, s],[ s,-s, s],[ s, s, s],[-s, s, s]),
+            ([-s, -s, s], [s, -s, s], [s, s, s], [-s, s, s]),
             // -Z
-            ([ s,-s,-s],[-s,-s,-s],[-s, s,-s],[ s, s,-s]),
+            ([s, -s, -s], [-s, -s, -s], [-s, s, -s], [s, s, -s]),
         ];
-        let uvs = [[0.0,0.0],[1.0,0.0],[1.0,1.0],[0.0,1.0]];
+        let uvs = [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]];
         let mut vertices = Vec::with_capacity(24);
         let mut indices = Vec::with_capacity(36);
         for (i, face) in positions.iter().enumerate() {
             let normal = match i {
-                0 => [1.0,0.0,0.0], 1 => [-1.0,0.0,0.0],
-                2 => [0.0,1.0,0.0], 3 => [0.0,-1.0,0.0],
-                4 => [0.0,0.0,1.0], 5 => [0.0,0.0,-1.0],
-                _ => [0.0,0.0,0.0],
+                0 => [1.0, 0.0, 0.0],
+                1 => [-1.0, 0.0, 0.0],
+                2 => [0.0, 1.0, 0.0],
+                3 => [0.0, -1.0, 0.0],
+                4 => [0.0, 0.0, 1.0],
+                5 => [0.0, 0.0, -1.0],
+                _ => [0.0, 0.0, 0.0],
             };
             let corners = [face.0, face.1, face.2, face.3];
             for (j, p) in corners.iter().enumerate() {
-                vertices.push(Vertex { position: *p, normal, uv: uvs[j] });
+                vertices.push(Vertex {
+                    position: *p,
+                    normal,
+                    uv: uvs[j],
+                });
             }
             let base = (i * 4) as u32;
-            indices.extend_from_slice(&[base, base+1, base+2, base, base+2, base+3]);
+            indices.extend_from_slice(&[base, base + 1, base + 2, base, base + 2, base + 3]);
         }
         Self::new(device, &vertices, &indices, texture)
     }
@@ -117,10 +124,26 @@ impl Mesh {
     pub fn plane(device: &wgpu::Device, texture: Texture) -> Self {
         let s = 0.5;
         let vertices = [
-            Vertex { position: [-s, 0.0,  s], normal: [0.0,1.0,0.0], uv: [0.0,0.0] },
-            Vertex { position: [ s, 0.0,  s], normal: [0.0,1.0,0.0], uv: [1.0,0.0] },
-            Vertex { position: [ s, 0.0, -s], normal: [0.0,1.0,0.0], uv: [1.0,1.0] },
-            Vertex { position: [-s, 0.0, -s], normal: [0.0,1.0,0.0], uv: [0.0,1.0] },
+            Vertex {
+                position: [-s, 0.0, s],
+                normal: [0.0, 1.0, 0.0],
+                uv: [0.0, 0.0],
+            },
+            Vertex {
+                position: [s, 0.0, s],
+                normal: [0.0, 1.0, 0.0],
+                uv: [1.0, 0.0],
+            },
+            Vertex {
+                position: [s, 0.0, -s],
+                normal: [0.0, 1.0, 0.0],
+                uv: [1.0, 1.0],
+            },
+            Vertex {
+                position: [-s, 0.0, -s],
+                normal: [0.0, 1.0, 0.0],
+                uv: [0.0, 1.0],
+            },
         ];
         let indices = [0u32, 1, 2, 0, 2, 3];
         Self::new(device, &vertices, &indices, texture)
@@ -153,8 +176,12 @@ impl Mesh {
                     for t in tok {
                         let vidx = t.split('/').next().and_then(|s| s.parse::<usize>().ok());
                         if let Some(i) = vidx {
-                            let p = positions.get(i - 1).copied().unwrap_or([0.0;3]);
-                            let v = Vertex { position: p, normal: [0.0, 1.0, 0.0], uv: [0.0, 0.0] };
+                            let p = positions.get(i - 1).copied().unwrap_or([0.0; 3]);
+                            let v = Vertex {
+                                position: p,
+                                normal: [0.0, 1.0, 0.0],
+                                uv: [0.0, 0.0],
+                            };
                             face_idx.push(verts.len() as u32);
                             verts.push(v);
                         }

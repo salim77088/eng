@@ -8,8 +8,8 @@ use bytemuck::{Pod, Zeroable};
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]
 pub struct SpriteVertex {
     pub position: [f32; 2],
-    pub uv:       [f32; 2],
-    pub color:    [f32; 4],
+    pub uv: [f32; 2],
+    pub color: [f32; 4],
 }
 
 impl SpriteVertex {
@@ -35,8 +35,8 @@ pub struct Sprite {
     pub texture: Texture,
     pub position: [f32; 2],
     pub rotation: f32, // radians
-    pub scale:    [f32; 2],
-    pub color:    [f32; 4],
+    pub scale: [f32; 2],
+    pub color: [f32; 4],
     pub sub_rect: [f32; 4], // x, y, w, h in 0..=1 UV space
 }
 
@@ -61,18 +61,8 @@ impl Sprite {
         let (cos, sin) = (self.rotation.cos(), self.rotation.sin());
 
         // 4 corners in local space (centered).
-        let corners = [
-            [-0.5, -0.5],
-            [ 0.5, -0.5],
-            [ 0.5,  0.5],
-            [-0.5,  0.5],
-        ];
-        let uvs = [
-            [ox,      oy + sh],
-            [ox + sw, oy + sh],
-            [ox + sw, oy],
-            [ox,      oy],
-        ];
+        let corners = [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]];
+        let uvs = [[ox, oy + sh], [ox + sw, oy + sh], [ox + sw, oy], [ox, oy]];
         let color = self.color;
         let transform = |lx: f32, ly: f32| -> [f32; 2] {
             let x = lx * sx;
@@ -82,10 +72,26 @@ impl Sprite {
                 self.position[1] + x * sin + y * cos,
             ]
         };
-        let v0 = SpriteVertex { position: transform(corners[0][0], corners[0][1]), uv: uvs[0], color };
-        let v1 = SpriteVertex { position: transform(corners[1][0], corners[1][1]), uv: uvs[1], color };
-        let v2 = SpriteVertex { position: transform(corners[2][0], corners[2][1]), uv: uvs[2], color };
-        let v3 = SpriteVertex { position: transform(corners[3][0], corners[3][1]), uv: uvs[3], color };
+        let v0 = SpriteVertex {
+            position: transform(corners[0][0], corners[0][1]),
+            uv: uvs[0],
+            color,
+        };
+        let v1 = SpriteVertex {
+            position: transform(corners[1][0], corners[1][1]),
+            uv: uvs[1],
+            color,
+        };
+        let v2 = SpriteVertex {
+            position: transform(corners[2][0], corners[2][1]),
+            uv: uvs[2],
+            color,
+        };
+        let v3 = SpriteVertex {
+            position: transform(corners[3][0], corners[3][1]),
+            uv: uvs[3],
+            color,
+        };
         // Two triangles: 0,1,2 and 0,2,3.
         out.extend_from_slice(&[v0, v1, v2, v0, v2, v3]);
     }
@@ -101,7 +107,9 @@ pub struct SpriteBatch {
 }
 
 impl SpriteBatch {
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
 
     pub fn push(&mut self, sprite: &Sprite) {
         if self.texture.is_none() {
@@ -115,6 +123,10 @@ impl SpriteBatch {
         self.texture = None;
     }
 
-    pub fn len(&self) -> usize { self.vertices.len() }
-    pub fn is_empty(&self) -> bool { self.vertices.is_empty() }
+    pub fn len(&self) -> usize {
+        self.vertices.len()
+    }
+    pub fn is_empty(&self) -> bool {
+        self.vertices.is_empty()
+    }
 }

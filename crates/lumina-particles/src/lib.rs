@@ -13,24 +13,24 @@ use std::sync::Arc;
 pub struct Particle {
     pub position: [f32; 3],
     pub velocity: [f32; 3],
-    pub color:    [f32; 4],
-    pub life:     f32,    // seconds remaining
+    pub color: [f32; 4],
+    pub life: f32, // seconds remaining
     pub max_life: f32,
-    pub size:     f32,
+    pub size: f32,
 }
 
 #[derive(Clone, Debug)]
 pub struct EmitterConfig {
-    pub rate: f32,             // particles per second
-    pub lifetime: [f32; 2],    // min, max
-    pub speed:    [f32; 2],
-    pub size:     [f32; 2],
+    pub rate: f32,          // particles per second
+    pub lifetime: [f32; 2], // min, max
+    pub speed: [f32; 2],
+    pub size: [f32; 2],
     pub color_start: [f32; 4],
-    pub color_end:   [f32; 4],
+    pub color_end: [f32; 4],
     pub gravity: [f32; 3],
-    pub spread: f32,           // radians (full cone angle)
+    pub spread: f32, // radians (full cone angle)
     pub origin: [f32; 3],
-    pub direction: [f32; 3],   // normalized
+    pub direction: [f32; 3], // normalized
 }
 
 impl Default for EmitterConfig {
@@ -41,7 +41,7 @@ impl Default for EmitterConfig {
             speed: [20.0, 60.0],
             size: [4.0, 10.0],
             color_start: [1.0, 0.85, 0.3, 1.0],
-            color_end:   [1.0, 0.2, 0.0, 0.0],
+            color_end: [1.0, 0.2, 0.0, 0.0],
             gravity: [0.0, -30.0, 0.0],
             spread: 1.0,
             origin: [0.0; 3],
@@ -124,19 +124,35 @@ impl ParticleSystem {
             let [x, y, _z] = p.position;
             // Billboard-ish quad in screen space (z ignored by the
             // 2D-style pipeline we feed it into).
-            let corners = [
-                [-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5],
-            ];
-            let uvs = [[0.0,1.0],[1.0,1.0],[1.0,0.0],[0.0,0.0]];
-            let v0 = SpriteVertex { position: [x + corners[0][0]*s, y + corners[0][1]*s], uv: uvs[0], color };
-            let v1 = SpriteVertex { position: [x + corners[1][0]*s, y + corners[1][1]*s], uv: uvs[1], color };
-            let v2 = SpriteVertex { position: [x + corners[2][0]*s, y + corners[2][1]*s], uv: uvs[2], color };
-            let v3 = SpriteVertex { position: [x + corners[3][0]*s, y + corners[3][1]*s], uv: uvs[3], color };
+            let corners = [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]];
+            let uvs = [[0.0, 1.0], [1.0, 1.0], [1.0, 0.0], [0.0, 0.0]];
+            let v0 = SpriteVertex {
+                position: [x + corners[0][0] * s, y + corners[0][1] * s],
+                uv: uvs[0],
+                color,
+            };
+            let v1 = SpriteVertex {
+                position: [x + corners[1][0] * s, y + corners[1][1] * s],
+                uv: uvs[1],
+                color,
+            };
+            let v2 = SpriteVertex {
+                position: [x + corners[2][0] * s, y + corners[2][1] * s],
+                uv: uvs[2],
+                color,
+            };
+            let v3 = SpriteVertex {
+                position: [x + corners[3][0] * s, y + corners[3][1] * s],
+                uv: uvs[3],
+                color,
+            };
             out.extend_from_slice(&[v0, v1, v2, v0, v2, v3]);
         }
     }
 
-    pub fn count(&self) -> usize { self.particles.len() }
+    pub fn count(&self) -> usize {
+        self.particles.len()
+    }
 }
 
 /// Random direction inside a cone of half-angle `spread` around `axis`.
@@ -149,7 +165,11 @@ fn random_in_cone(axis: &[f32; 3], spread: f32, rng: &mut TinyRng) -> Vec3 {
     let r = (1.0 - z * z).sqrt();
     let local = Vec3::new(r * phi.cos(), r * phi.sin(), z);
     // Rotate `local` so that +Z aligns with `axis_v`.
-    let up = if axis_v.y.abs() > 0.99 { Vec3::X } else { Vec3::Y };
+    let up = if axis_v.y.abs() > 0.99 {
+        Vec3::X
+    } else {
+        Vec3::Y
+    };
     let right = axis_v.cross(up).normalize_or_zero();
     let true_up = axis_v.cross(right).normalize_or_zero();
     right * local.x + true_up * local.y + axis_v * local.z
@@ -158,7 +178,9 @@ fn random_in_cone(axis: &[f32; 3], spread: f32, rng: &mut TinyRng) -> Vec3 {
 /// Tiny xorshift PRNG - good enough for particles, no need to pull in
 /// a crate for v0.1. Seed from a hash of `std::time` + an atomic counter
 /// so successive emitters don't all start in sync.
-struct TinyRng { state: u64 }
+struct TinyRng {
+    state: u64,
+}
 impl TinyRng {
     fn from_entropy() -> Self {
         use std::time::{SystemTime, UNIX_EPOCH};
@@ -171,12 +193,16 @@ impl TinyRng {
         static COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
         let c = COUNTER.fetch_add(0x9E3779B97F4A7C15, std::sync::atomic::Ordering::Relaxed);
         let mut s = nanos ^ c.rotate_left(17) ^ 0xDEADBEEF;
-        if s == 0 { s = 0xDEADBEEF; }
+        if s == 0 {
+            s = 0xDEADBEEF;
+        }
         Self { state: s }
     }
     fn next_u64(&mut self) -> u64 {
         let mut x = self.state;
-        x ^= x << 13; x ^= x >> 7; x ^= x << 17;
+        x ^= x << 13;
+        x ^= x >> 7;
+        x ^= x << 17;
         self.state = x;
         x
     }
@@ -193,7 +219,9 @@ pub struct ParticleRegistry {
 }
 
 impl ParticleRegistry {
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
     pub fn register(&self, sys: ParticleSystem) -> usize {
         let mut guard = self.systems.write();
         let idx = guard.len();

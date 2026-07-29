@@ -37,16 +37,30 @@ pub use kira_backend::KiraAudioEngine;
 pub struct NullAudioEngine;
 
 impl Default for NullAudioEngine {
-    fn default() -> Self { Self }
+    fn default() -> Self {
+        Self
+    }
 }
 
 impl AudioBackend for NullAudioEngine {
-    fn is_available(&self) -> bool { false }
-    fn load(&self, _: &str, _: &Path) -> Result<()> { Ok(()) }
-    fn play(&self, _: &str, _: f64) -> Result<()> { Ok(()) }
-    fn play_music(&self, _: &Path, _: f64, _: bool) -> Result<()> { Ok(()) }
-    fn set_master_volume(&self, _: f64) -> Result<()> { Ok(()) }
-    fn stop_all(&self) -> Result<()> { Ok(()) }
+    fn is_available(&self) -> bool {
+        false
+    }
+    fn load(&self, _: &str, _: &Path) -> Result<()> {
+        Ok(())
+    }
+    fn play(&self, _: &str, _: f64) -> Result<()> {
+        Ok(())
+    }
+    fn play_music(&self, _: &Path, _: f64, _: bool) -> Result<()> {
+        Ok(())
+    }
+    fn set_master_volume(&self, _: f64) -> Result<()> {
+        Ok(())
+    }
+    fn stop_all(&self) -> Result<()> {
+        Ok(())
+    }
 }
 
 /// Public engine facade - holds whichever backend is active behind an
@@ -68,7 +82,9 @@ impl AudioEngine {
         Self { backend }
     }
 
-    pub fn is_available(&self) -> bool { self.backend.is_available() }
+    pub fn is_available(&self) -> bool {
+        self.backend.is_available()
+    }
     pub fn load(&self, name: &str, path: &Path) -> Result<()> {
         self.backend.load(name, path)
     }

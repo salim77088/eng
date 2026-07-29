@@ -45,9 +45,15 @@ impl Transform {
     }
 
     /// Right / up / forward basis vectors in world space.
-    pub fn right(&self)   -> Vec3 { self.rotation * Vec3::X }
-    pub fn up(&self)      -> Vec3 { self.rotation * Vec3::Y }
-    pub fn forward(&self) -> Vec3 { self.rotation * -Vec3::Z }
+    pub fn right(&self) -> Vec3 {
+        self.rotation * Vec3::X
+    }
+    pub fn up(&self) -> Vec3 {
+        self.rotation * Vec3::Y
+    }
+    pub fn forward(&self) -> Vec3 {
+        self.rotation * -Vec3::Z
+    }
 
     /// Rotate around the world Y axis by `angle` radians.
     pub fn rotate_y(&mut self, angle: f32) {

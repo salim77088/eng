@@ -27,11 +27,8 @@ impl Camera2D {
         let aspect = self.viewport_w.max(1.0) / self.viewport_h.max(1.0);
         let half_h = self.viewport_h * 0.5 / self.zoom.max(0.0001);
         let half_w = half_h * aspect;
-        let proj = Mat4::orthographic_rh(
-            -half_w, half_w, -half_h, half_h, -1000.0, 1000.0,
-        );
-        let view = Mat4::from_translation(-self.position)
-            * Mat4::from_rotation_z(-self.rotation);
+        let proj = Mat4::orthographic_rh(-half_w, half_w, -half_h, half_h, -1000.0, 1000.0);
+        let view = Mat4::from_translation(-self.position) * Mat4::from_rotation_z(-self.rotation);
         proj * view
     }
 }
