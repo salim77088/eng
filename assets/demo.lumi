@@ -1,0 +1,43 @@
+// LuminaScript demo - "Bouncing Logo"
+// =====================================
+// This script demonstrates the LuminaScript API. It's a JS-like language
+// powered by rhai. The engine exposes globals like `delta`, `time`,
+// `fps`, and `key_*_held` booleans. Define an `update(dt)` function to
+// run every frame.
+
+let phase = 0.0;
+let amplitude = 200.0;
+
+// Called once when the script is first loaded.
+fn init() {
+    print("LuminaScript: Bouncing Logo demo initialized");
+}
+
+// Called every visual frame. `dt` is seconds since the last frame.
+fn update(dt) {
+    phase += dt * 2.0;
+
+    // Read input state exposed by the engine.
+    let moving = key_w_held || key_a_held || key_s_held || key_d_held;
+
+    if moving {
+        amplitude = 300.0;
+    } else {
+        amplitude = 200.0;
+    }
+
+    // The engine reads these globals back after update() returns.
+    // (In v0.1 this is a stub - full entity control arrives in v0.2.)
+    let x = amplitude * sin(phase);
+    let y = 200.0 + 50.0 * sin(phase * 3.0);
+
+    // Log every 60 frames or so.
+    if int(time * 2) % 2 == 0 {
+        // print is a built-in rhai function.
+    }
+}
+
+// Called when the script is unloaded or reloaded.
+fn shutdown() {
+    print("LuminaScript: Bouncing Logo demo shutting down");
+}

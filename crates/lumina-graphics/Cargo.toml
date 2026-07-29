@@ -1,0 +1,20 @@
+[package]
+name = "lumina-graphics"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "2D/3D rendering for Lumina Engine, built on wgpu"
+
+[dependencies]
+lumina-core.workspace = true
+wgpu.workspace = true
+winit.workspace = true
+image.workspace = true
+glam.workspace = true
+bytemuck.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+log.workspace = true
+parking_lot.workspace = true
+pollster.workspace = true

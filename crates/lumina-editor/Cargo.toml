@@ -1,0 +1,24 @@
+[package]
+name = "lumina-editor"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Integrated editor UI for Lumina Engine, built on egui"
+
+[dependencies]
+lumina-core.workspace = true
+lumina-graphics.workspace = true
+lumina-script.workspace = true
+lumina-particles.workspace = true
+egui.workspace = true
+egui-wgpu.workspace = true
+egui-winit.workspace = true
+wgpu.workspace = true
+winit.workspace = true
+hecs.workspace = true
+glam.workspace = true
+anyhow.workspace = true
+log.workspace = true
+parking_lot.workspace = true
+raw-window-handle = "0.6"

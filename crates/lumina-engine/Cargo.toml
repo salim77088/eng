@@ -1,0 +1,41 @@
+[package]
+name = "lumina-engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Top-level integration crate for Lumina Engine"
+
+[features]
+default = ["audio"]
+# Real audio playback via kira. Requires ALSA dev headers on Linux.
+# Disable with `--no-default-features` for a no-op audio backend.
+audio = ["lumina-audio/kira"]
+
+[dependencies]
+lumina-core.workspace = true
+lumina-graphics.workspace = true
+lumina-audio.workspace = true
+lumina-script.workspace = true
+lumina-particles.workspace = true
+lumina-editor.workspace = true
+wgpu.workspace = true
+winit.workspace = true
+hecs.workspace = true
+egui.workspace = true
+egui-wgpu.workspace = true
+egui-winit.workspace = true
+glam.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+log.workspace = true
+env_logger.workspace = true
+pollster.workspace = true
+parking_lot.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+ron.workspace = true
+
+[[bin]]
+name = "lumina"
+path = "src/main.rs"

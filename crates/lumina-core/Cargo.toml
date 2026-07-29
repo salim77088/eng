@@ -1,0 +1,20 @@
+[package]
+name = "lumina-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Core primitives for Lumina Engine: math, time, logging, ECS wrappers, input"
+
+[dependencies]
+glam.workspace = true
+hecs.workspace = true
+log.workspace = true
+env_logger.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+ron.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+uuid.workspace = true
+parking_lot.workspace = true

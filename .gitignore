@@ -1,0 +1,19 @@
+# Build artifacts
+/target/
+**/*.rs.bk
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Cargo lock is committed for binary crates
+# (uncomment to ignore for library crates)
+# Cargo.lock
+
+# Asset working files
+*.tmp
+*.bak

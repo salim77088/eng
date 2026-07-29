@@ -1,0 +1,158 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v0.1.0)"
+        required: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build release (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: lumina-linux-x86_64
+            archive: lumina-linux-x86_64.tar.gz
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: lumina-windows-x86_64
+            archive: lumina-windows-x86_64.zip
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact_name: lumina-macos-arm64
+            archive: lumina-macos-arm64.tar.gz
+          - os: macos-13
+            target: x86_64-apple-darwin
+            artifact_name: lumina-macos-x86_64
+            archive: lumina-macos-x86_64.tar.gz
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "lumina -> target"
+
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libasound2-dev \
+            libudev-dev \
+            pkg-config \
+            libxkbcommon-dev \
+            libwayland-dev \
+            libx11-dev \
+            libxcb1-dev \
+            libxrandr-dev \
+            libxinerama-dev \
+            libxi-dev \
+            libxcursor-dev
+
+      - name: Build release
+        working-directory: lumina
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Stage artifacts (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p staging/assets
+          cp -r lumina/assets/* staging/assets/ 2>/dev/null || true
+          cp lumina/README.md staging/ 2>/dev/null || true
+          cp lumina/LICENSE-MIT staging/ 2>/dev/null || true
+          cp lumina/LICENSE-APACHE staging/ 2>/dev/null || true
+          if [ "${{ matrix.target }}" = "aarch64-apple-darwin" ] || [ "${{ matrix.target }}" = "x86_64-apple-darwin" ]; then
+            # On macOS, copy the binary directly (no .app bundle in v0.1)
+            cp lumina/target/${{ matrix.target }}/release/lumina staging/lumina
+          else
+            cp lumina/target/${{ matrix.target }}/release/lumina staging/lumina
+          fi
+          tar -czf ${{ matrix.archive }} -C staging .
+        shell: bash
+
+      - name: Stage artifacts (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          mkdir -p staging/assets
+          Copy-Item -Recurse lumina/assets/* staging/assets/ -ErrorAction SilentlyContinue
+          Copy-Item lumina/README.md staging/ -ErrorAction SilentlyContinue
+          Copy-Item lumina/LICENSE-MIT staging/ -ErrorAction SilentlyContinue
+          Copy-Item lumina/LICENSE-APACHE staging/ -ErrorAction SilentlyContinue
+          Copy-Item lumina/target/${{ matrix.target }}/release/lumina.exe staging/lumina.exe
+          Compress-Archive -Path staging/* -DestinationPath ${{ matrix.archive }}
+        shell: pwsh
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.archive }}
+          retention-days: 30
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: List artifacts
+        run: find artifacts -type f | sort
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          name: Lumina Engine ${{ github.event.inputs.tag || github.ref_name }}
+          body: |
+            ## Lumina Engine ${{ github.event.inputs.tag || github.ref_name }}
+
+            Pre-built binaries for Windows, Linux, and macOS.
+
+            ### Downloads
+            - **Windows**: `lumina-windows-x86_64.zip`
+            - **Linux**: `lumina-linux-x86_64.tar.gz`
+            - **macOS (Apple Silicon)**: `lumina-macos-arm64.tar.gz`
+            - **macOS (Intel)**: `lumina-macos-x86_64.tar.gz`
+
+            ### Quick Start
+            1. Download the archive for your platform.
+            2. Extract it.
+            3. Run `lumina` (or `lumina.exe` on Windows).
+            4. The editor window opens with a demo scene.
+
+            See the [README](https://github.com/salim77088/eng/blob/main/README.md) for details.
+          files: |
+            artifacts/*/lumina-*.tar.gz
+            artifacts/*/lumina-*.zip
+          draft: false
+          prerelease: false
+          generate_release_notes: true

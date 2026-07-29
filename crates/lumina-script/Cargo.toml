@@ -1,0 +1,17 @@
+[package]
+name = "lumina-script"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "LuminaScript - an easy, JS-like scripting layer for Lumina Engine, powered by rhai"
+
+[dependencies]
+lumina-core.workspace = true
+rhai.workspace = true
+glam.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+log.workspace = true
+parking_lot.workspace = true
+notify.workspace = true
