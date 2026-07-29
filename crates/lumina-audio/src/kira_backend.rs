@@ -49,8 +49,8 @@ impl AudioBackend for KiraAudioEngine {
     }
 
     fn play(&self, name: &str, volume: f64) -> Result<()> {
-        let mgr_guard = self.manager.read();
-        let mgr = mgr_guard.as_ref().context("audio manager unavailable")?;
+        let mut mgr_guard = self.manager.write();
+        let mgr = mgr_guard.as_mut().context("audio manager unavailable")?;
         let data = {
             let sounds = self.sounds.read();
             sounds
@@ -65,8 +65,8 @@ impl AudioBackend for KiraAudioEngine {
     }
 
     fn play_music(&self, path: &Path, volume: f64, loops: bool) -> Result<()> {
-        let mgr_guard = self.manager.read();
-        let mgr = mgr_guard.as_ref().context("audio manager unavailable")?;
+        let mut mgr_guard = self.manager.write();
+        let mgr = mgr_guard.as_mut().context("audio manager unavailable")?;
         let mut settings = StreamingSoundSettings::new().volume(Self::vol_to_db(volume));
         if loops {
             settings = settings.loop_region(..);
