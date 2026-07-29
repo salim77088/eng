@@ -396,16 +396,44 @@ impl Renderer {
             .write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[uniform]));
     }
 
-    /// Render a frame. The closure records draw operations into the
-    /// provided `FrameRecorder`; the renderer submits everything at once.
-    pub fn render(&self, clear: [f64; 4], record: impl FnOnce(&mut FrameRecorder)) -> Result<()> {
-        let surface_texture = self
-            .surface
-            .get_current_texture()
-            .map_err(|e| anyhow::anyhow!("surface acquisition failed: {e}"))?;
-        let texture_view = surface_texture
-            .texture
-            .create_view(&wgpu::TextureViewDescriptor::default());
+    /// Try to acquire the current surface texture. If the surface is lost
+    /// or outdated (common after a resize, minimize, or DPI change), the
+    /// surface is reconfigured and the caller should skip this frame.
+    /// Returns `Ok(texture)` on success, `Ok(None)` if the caller should
+    /// skip the frame (surface reconfigured, try again next frame), or
+    /// `Err` on a fatal error.
+    pub fn acquire_frame(&self) -> Result<Option<wgpu::SurfaceTexture>> {
+        match self.surface.get_current_texture() {
+            Ok(tex) => Ok(Some(tex)),
+            Err(wgpu::SurfaceError::Lost) | Err(wgpu::SurfaceError::Outdated) => {
+                log::warn!("surface lost/outdated - reconfiguring");
+                let (w, h) = self.surface_size();
+                if w > 0 && h > 0 {
+                    let cfg = self.config.read().clone();
+                    self.surface.configure(&self.device, &cfg);
+                }
+                Ok(None)
+            }
+            Err(wgpu::SurfaceError::Timeout) => {
+                log::warn!("surface acquire timed out - skipping frame");
+                Ok(None)
+            }
+            Err(e) => Err(anyhow::anyhow!("fatal surface error: {e}")),
+        }
+    }
+
+    /// Render the game scene into a provided texture view. Does NOT acquire
+    /// or present the surface — the caller is responsible for that, so the
+    /// same surface texture can be reused for an overlay pass (e.g. egui)
+    /// in the same frame. This is the correct single-acquire-per-frame
+    /// pattern; acquiring the surface twice per frame corrupts the
+    /// swapchain on some backends (notably DX12 on Windows).
+    pub fn render_to_view(
+        &self,
+        view: &wgpu::TextureView,
+        clear: [f64; 4],
+        record: impl FnOnce(&mut FrameRecorder),
+    ) {
         let depth = self.depth_texture.read();
 
         let mut encoder = self
@@ -414,12 +442,12 @@ impl Renderer {
                 label: Some("lumina frame encoder"),
             });
 
-        // First pass: clear + draw everything into the surface view.
+        // Game pass: clear + draw everything into the provided view.
         {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("lumina main pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &texture_view,
+                    view,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
@@ -459,12 +487,10 @@ impl Renderer {
         }
 
         self.queue.submit(std::iter::once(encoder.finish()));
-        surface_texture.present();
-        Ok(())
     }
 }
 
-/// Per-frame draw command recorder. Passed to the closure in `render()`.
+/// Per-frame draw command recorder. Passed to the closure in `render_to_view()`.
 pub struct FrameRecorder<'a> {
     pass: &'a mut wgpu::RenderPass<'a>,
     device: &'a wgpu::Device,

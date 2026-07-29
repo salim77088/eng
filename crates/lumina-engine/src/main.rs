@@ -231,23 +231,37 @@ impl LuminaApp {
         // Snapshot entities for rendering.
         let scene_guard = scene.read();
         let mut mesh_draws: Vec<(Transform, String)> = Vec::new();
-        for (id, t) in scene_guard.world.raw().query::<&Transform>().iter() {
-            let name = scene_guard
-                .world
-                .raw()
-                .get::<&Name>(id)
-                .map(|n| n.0.clone())
-                .unwrap_or_else(|_| "Entity".into());
-            mesh_draws.push((*t, name));
+        let mut query = scene_guard.world.raw().query::<(&Transform, &Name)>();
+        for (id, (t, n)) in query.iter() {
+            let _ = id;
+            mesh_draws.push((*t, n.0.clone()));
         }
+        drop(query);
         drop(scene_guard);
 
-        // Render the game scene.
+        // ---- Single-acquire render frame ----
+        // Acquire the surface texture ONCE. Render the game scene into it,
+        // then render the egui editor on top with LoadOp::Load, then present
+        // ONCE. Acquiring the surface twice per frame corrupts the swapchain
+        // on DX12 (Windows), causing "Surface does not exist" panics.
+        let surface_texture = match renderer.acquire_frame() {
+            Ok(Some(tex)) => tex,
+            Ok(None) => return, // surface reconfigured — skip this frame
+            Err(e) => {
+                log::error!("fatal surface error: {e}");
+                return;
+            }
+        };
+        let view = surface_texture
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
+
+        // Game pass: clear + draw meshes, particles, sprites.
         let clear = [0.05, 0.06, 0.08, 1.0];
         let cube_mesh = cube_mesh.clone();
         let plane_mesh = plane_mesh.clone();
         let sprite_batch = sprite_batch.clone();
-        let res = renderer.render(clear, |rec| {
+        renderer.render_to_view(&view, clear, |rec| {
             for (t, name) in &mesh_draws {
                 let mesh = if name == "Ground" {
                     &plane_mesh
@@ -266,23 +280,22 @@ impl LuminaApp {
             let batch = sprite_batch.read();
             rec.draw_sprites(&batch);
         });
-        if let Err(e) = res {
-            log::error!("render error: {e}");
-            return;
-        }
 
-        // Egui UI pass.
-        self.run_editor_ui();
+        // Egui pass: build UI, then paint on top of the game scene using the
+        // SAME surface texture view (LoadOp::Load keeps the game's pixels).
+        self.run_editor_ui(&view);
+
+        // Present the single surface texture exactly once.
+        surface_texture.present();
     }
 
-    fn run_editor_ui(&mut self) {
+    fn run_editor_ui(&mut self, view: &wgpu::TextureView) {
         let editor = self.editor.as_ref().unwrap();
         let scene = self.scene.as_ref().unwrap();
         let time = self.time.as_ref().unwrap();
         let particles = self.particles.as_ref().unwrap();
         let renderer = self.renderer.as_ref().unwrap();
         let window = self.window.as_ref().unwrap();
-        let input = self.input.as_ref().unwrap();
 
         // Collect all entity info in a single query pass to avoid borrow issues.
         let entities: Vec<(u64, String, Option<[f32; 3]>, Option<[f32; 3]>)> = {
@@ -354,30 +367,23 @@ impl LuminaApp {
             panels::about(ctx, &mut state);
         });
 
-        // Paint egui on top of the game.
+        // Paint egui on top of the game scene using the SAME surface view
+        // that was already acquired in render(). The editor's paint() uses
+        // LoadOp::Load so the game pixels are preserved.
         let (w, h) = renderer.surface_size();
         let scale = window.scale_factor() as f32;
         let screen_descriptor = egui_wgpu::ScreenDescriptor {
             size_in_pixels: [w, h],
             pixels_per_point: scale,
         };
-        // Acquire the surface texture for the egui overlay.
-        if let Ok(surface_texture) = renderer.surface.get_current_texture() {
-            let view = surface_texture
-                .texture
-                .create_view(&wgpu::TextureViewDescriptor::default());
-            editor.paint(
-                &renderer.device,
-                &renderer.queue,
-                &view,
-                screen_descriptor,
-                shapes,
-                textures_delta,
-            );
-            surface_texture.present();
-        }
-
-        let _ = input;
+        editor.paint(
+            &renderer.device,
+            &renderer.queue,
+            view,
+            screen_descriptor,
+            shapes,
+            textures_delta,
+        );
     }
 }
 
